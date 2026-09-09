@@ -1,0 +1,49 @@
+[
+    {
+        "type": "style",
+        "handle": "leaflet-css",
+        "src": "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css",
+        "deps": [],
+        "ver": "1.9.4",
+        "in_footer": null
+    },
+    {
+        "type": "style",
+        "handle": "vos-tooltip-css",
+        "src": "includes/styles/tooltip.css",
+        "deps": [],
+        "ver": "1.0.0",
+        "in_footer": null
+    },
+    {
+        "type": "style",
+        "handle": "vos-base-css",
+        "src": "includes/styles/base.css",
+        "deps": [
+            "wp-components"
+        ],
+        "ver": "1.0.0",
+        "in_footer": null
+    },
+    {
+        "type": "script",
+        "handle": "leaflet-js",
+        "src": "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js",
+        "deps": [],
+        "ver": "1.9.4",
+        "in_footer": true
+    },
+    {
+        "type": "script",
+        "handle": "vos-territory-js",
+        "src": "build/index.js",
+        "deps": [
+            "wp-components",
+            "wp-element",
+            "leaflet-js"
+        ],
+        "ver": null,
+        "in_footer": true,
+        "localize": true
+    }
+]

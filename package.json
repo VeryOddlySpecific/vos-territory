@@ -1,0 +1,23 @@
+{
+  "name": "vos-territory",
+  "version": "2.8.1",
+  "description": "WordPress plugin rendering an interactive US county map for assigning and displaying branch territory coverage.",
+  "main": "webpack.config.js",
+  "scripts": {
+    "start": "wp-scripts start",
+    "build": "wp-scripts build",
+    "plugin-zip": "wp-scripts plugin-zip"
+  },
+  "keywords": [],
+  "author": "Alexander Steadman (VOS)",
+  "license": "GPL-2.0-or-later",
+  "dependencies": {
+    "@turf/turf": "^6.5.0",
+    "@wordpress/components": "^25.11.0",
+    "@wordpress/element": "^5.22.0",
+    "@wordpress/icons": "^9.38.0",
+    "@wordpress/scripts": "^26.15.0",
+    "copy-webpack-plugin": "^10.2.4",
+    "xlsx": "^0.18.5"
+  }
+}
