@@ -2,7 +2,7 @@
 /**
  * Plugin Name: VOS Territory Map
  * Description: Mapping plugin to display and manage branch territory coverage.
- * Version: 2.8.1
+ * Version: 2.8.2
  * Author: Alexander Steadman (VOS)
  * License: GPL2
  */
@@ -15,7 +15,7 @@ if ( ! defined( 'WPINC' ) ) {
 // Define plugin constants
 define( 'VOS_TM_PATH', plugin_dir_path( __FILE__ ) );
 define( 'VOS_TM_URL', plugin_dir_url( __FILE__ ) );
-define( 'VOS_TM_VERSION', '2.8.1' );
+define( 'VOS_TM_VERSION', '2.8.2' );
 
 // Include plugin files
 require_once VOS_TM_PATH . 'includes/class-vos-territory.php';

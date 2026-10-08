@@ -77,6 +77,7 @@ vos-territory.php            # Plugin entry: header, constants, bootstrap
 includes/
   class-vos-territory.php        # Top-level controller (admin + public)
   admin/                         # Admin display, settings, branch CPT, REST routes
+    class-vos-meta-fields.php    # Shared branch/playground meta registration + validation
   public/                        # Public-facing enqueue and shortcode/block hooks
   assets/
     states/{FIPS}.geojson        # Per-state county FeatureCollections
@@ -104,6 +105,7 @@ src/
   editor/                        # Block editor controls (branch color panel etc.)
   utils/
     branchStyles.js              # Branch style helpers (derived from color)
+    sanitize.js                  # safeColor / safeUrl guards for markup output
   assets/
     fips.json                    # State FIPS → name/abbr lookup
 ```
@@ -116,7 +118,9 @@ src/
 - **Branches:** Managed as a custom post type (`vos_branch`) in WordPress.
   `VOS_Branch::get_branches_for_js()` exposes them to the front-end via
   `wp_localize_script` as `vosTm.branches`, keyed by post ID with
-  `{ id, label, color, coordinates, url }`.
+  `{ id, label, color, coordinates, url }`. Branch and playground meta is
+  validated on write and on read by `VOS_Meta_Fields`: colors are `#rrggbb`,
+  URLs absolute http(s), coordinates a `[lng, lat]` pair.
 - **Persistence:** Selected states and county/branch assignments are saved
   to the WordPress options table and re-injected on page load.
 - **Tiles:** MapTiler `dataviz` raster tiles. The key is read from plugin
@@ -139,6 +143,38 @@ cannot be generated at build time. The other two should be updated to
 match whenever the header is bumped.
 
 ## Changelog
+
+### 2.8.2 — 2026-10-08
+
+Security fix plus a rollback of the unfinished Google Maps basemap. No new
+features and existing data loads unchanged, so this is a PATCH bump.
+
+**Security**
+- Branch and playground meta (`*_color`, `*_url`, `*_coordinates`, `*_number`)
+  was registered without a `sanitize_callback`, so the REST API accepted any
+  string. A Map Manager could store markup in a color that ran in an admin's
+  session on Print Map, or a `javascript:` URL that ran for any visitor who
+  clicked the Branch Finder link. The new `VOS_Meta_Fields` class validates
+  every field on write, adds REST schema patterns so the block editor gets a
+  400 for bad colors and URLs, and re-checks values when they're sent to the
+  page. A one-time pass cleans values stored before the fix on the first
+  admin page load after updating.
+- `PrintButton.jsx` validates and escapes colors before writing them into the
+  print window, and `BranchFinder.jsx` only links http(s) URLs.
+
+**Changed**
+- Basemap is back on Leaflet + MapTiler. The in-progress Google Maps
+  migration had only converted `TerritoryMap.jsx` and disabled
+  `MapProcessor.jsx`, while county search and Save still called Leaflet
+  methods. The settings page has its MapTiler API Key field again, and the
+  Google loader and key are no longer sent to the page. The server-side
+  Google geocoder is unchanged and stays dormant.
+- `npm run build` and `npm run start` write to `build/` in place. The copy
+  into `deploy/` is now opt-in via `npm run build:deploy` or
+  `VOS_TM_DEPLOY_DIR`.
+
+**Removed**
+- `src/utils/googleMaps.js` (Google Maps loader and basemap styles).
 
 ### 2.8.1 — 2026-09-03
 

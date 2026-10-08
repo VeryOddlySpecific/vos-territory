@@ -1,6 +1,6 @@
 {
   "name": "vos-territory",
-  "version": "2.8.1",
+  "version": "2.8.2",
   "description": "WordPress plugin rendering an interactive US county map for assigning and displaying branch territory coverage.",
   "main": "webpack.config.js",
   "scripts": {
