@@ -6,6 +6,7 @@
   "scripts": {
     "start": "wp-scripts start",
     "build": "wp-scripts build",
+    "build:deploy": "wp-scripts build",
     "plugin-zip": "wp-scripts plugin-zip"
   },
   "keywords": [],
