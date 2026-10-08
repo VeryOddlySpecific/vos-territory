@@ -204,7 +204,7 @@ class VOS_Admin {
 
         add_action( 'admin_post_vos_tm_import_json',   array( $this->settings, 'handle_import' ) );
 
-        add_action( 'admin_post_vos_tm_save_google_maps_key', array( $this->settings, 'save_google_maps_key' ) );
+        add_action( 'admin_post_vos_tm_save_maptiler_key', array( $this->settings, 'save_maptiler_key' ) );
 
         add_action( 'rest_api_init', array( $this->settings, 'register_rest_routes' ) );
 
