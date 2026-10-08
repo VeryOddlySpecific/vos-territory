@@ -22,9 +22,7 @@ const Layout = () => {
                 <SubregionData />
                 <TerritoryMap />
             </div>
-            {/* TODO Phase 3b: MapProcessor still uses Leaflet against the map ref.
-                Disabled while the basemap is migrated to Google Maps. */}
-            {/* <MapProcessor /> */}
+            <MapProcessor />
             <BranchProcessor />
         </>
     );
@@ -43,8 +41,7 @@ const PublicLayout = () => {
             <ViewToggle />
             <MapLegend />
             <TerritoryMap />
-            {/* TODO Phase 3b: re-enable once MapProcessor renders via Google Maps. */}
-            {/* <MapProcessor /> */}
+            <MapProcessor />
         </>
     );
 

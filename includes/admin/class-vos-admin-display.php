@@ -44,7 +44,7 @@ class VOS_Admin_Display {
                         'branches'    => VOS_Branch::get_branches_for_js(),
                         'playgrounds'          => VOS_Playground::get_playgrounds_for_js(),
                         'playgroundSubregions' => get_option( '_vos_tm_playground_subregions' ),
-                        'googleMapsKey' => VOS_Settings::google_maps_key(),
+                        'maptilerKey' => VOS_Settings::maptiler_key(),
                     );
 
                     wp_localize_script( $handle, 'vosTm', $obj );
@@ -55,7 +55,6 @@ class VOS_Admin_Display {
 
         }
 
-        VOS_Settings::enqueue_google_maps_loader();
 
     }
 

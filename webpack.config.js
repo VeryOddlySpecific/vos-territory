@@ -4,7 +4,7 @@
  * Extends the @wordpress/scripts default config (which provides the
  * JSX/Babel loaders and the DependencyExtractionWebpackPlugin that emits
  * each entry's `*.asset.php`) with this plugin's explicit entry points and
- * a copy step that deploys the production files into the local site.
+ * an optional copy step that packages the production files for deploy.
  *
  * There are no block.json files, so blocks are registered from PHP and the
  * default block auto-detection does not apply — every bundle is listed
@@ -15,20 +15,29 @@
  *   build/branch-editor.js                        class-vos-branch.php
  *   build/playground-editor.js                    class-vos-playground.php
  *
- * Deploy target: set VOS_TM_DEPLOY_DIR to the served plugin dir of a local
- * WordPress install to build straight into it (no copy-timing race on
- * freshly emitted assets; the static PHP/CSS/asset files are copied with
- * absolute `to` paths). Without it, everything lands in this repo's own
- * ./deploy directory.
+ * Output targets:
+ *   npm run build / npm start  -> ./build, in place. The repo is the plugin
+ *                                 dir WordPress serves, so a refresh picks
+ *                                 up the new bundles. No copy step.
+ *   npm run build:deploy       -> ./deploy (build/, includes/,
+ *                                 vos-territory.php), a standalone copy
+ *                                 of the plugin for shipping.
+ *   VOS_TM_DEPLOY_DIR=<dir>    -> same as build:deploy, into <dir>, e.g. the
+ *                                 served plugin dir of another WordPress
+ *                                 install. Never point it at this repo: the
+ *                                 copy step would write includes/ onto itself.
  */
 
 const defaultConfig = require( '@wordpress/scripts/config/webpack.config' );
 const CopyWebpackPlugin = require( 'copy-webpack-plugin' );
 const path = require( 'path' );
 
-// Served plugin directory inside a local WordPress install (env override),
-// or a local ./deploy folder by default.
-const DEPLOY_DIR = process.env.VOS_TM_DEPLOY_DIR || path.resolve( __dirname, 'deploy' );
+// npm sets npm_lifecycle_event to the script name, which keeps
+// build:deploy cross-platform (no inline env var syntax in package.json).
+const DEPLOY_DIR = process.env.VOS_TM_DEPLOY_DIR
+	|| ( process.env.npm_lifecycle_event === 'build:deploy' ? path.resolve( __dirname, 'deploy' ) : null );
+
+const OUTPUT_DIR = DEPLOY_DIR ? path.join( DEPLOY_DIR, 'build' ) : path.resolve( __dirname, 'build' );
 
 const config = {
 	...defaultConfig,
@@ -41,12 +50,12 @@ const config = {
 	},
 	output: {
 		...defaultConfig.output,
-		path: path.join( DEPLOY_DIR, 'build' ),
-		clean: true, // wipe stale bundles in <deploy>/build on each build
+		path: OUTPUT_DIR,
+		clean: true, // wipe stale bundles in the output dir on each build
 	},
 	plugins: [
 		...defaultConfig.plugins,
-		new CopyWebpackPlugin( {
+		DEPLOY_DIR && new CopyWebpackPlugin( {
 			patterns: [
 				{
 					from: path.resolve( __dirname, 'vos-territory.php' ),
@@ -62,7 +71,7 @@ const config = {
 				},
 			],
 		} ),
-	],
+	].filter( Boolean ),
 };
 
 // The production build minifies with several parallel Terser workers by

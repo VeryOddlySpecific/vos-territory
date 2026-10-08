@@ -5,7 +5,6 @@ import {
 
 import { MapContext } from './MapContext';
 import CountySearch from './CountySearch';
-import { importMapsLibrary, US_BOUNDS, MAP_STYLES } from '../utils/googleMaps';
 
 const TerritoryMap = () => {
 
@@ -13,38 +12,25 @@ const TerritoryMap = () => {
 
     useEffect(() => {
 
-        let cancelled = false;
+        // Guard against a double-init (effect re-run / fast remount).
+        if (mapRef.current) {
+            return;
+        }
 
-        importMapsLibrary('maps')
-            .then(({ Map }) => {
-                // Guard against a double-init (effect re-run / fast remount).
-                if (cancelled || mapRef.current) {
-                    return;
-                }
-
-                mapRef.current = new Map(document.getElementById('vos-map'), {
-                    center: { lat: 39.8283, lng: -98.5795 },
-                    zoom: 4,
-                    // Minimal chrome, matching the old Leaflet (zoomControl:false)
-                    // map — navigation is driven by search/legend/gestures.
-                    disableDefaultUI: true,
-                    // Keep panning within the continental US, like the former
-                    // Leaflet maxBounds (loose so edge counties stay reachable).
-                    restriction: {
-                        latLngBounds: US_BOUNDS,
-                        strictBounds: false,
-                    },
-                    styles: MAP_STYLES,
-                });
-            })
-            .catch((err) => {
-                // eslint-disable-next-line no-console
-                console.error('VOS Territory Map:', err.message);
-            });
-
-        return () => {
-            cancelled = true;
-        };
+        // Created synchronously so sibling effects that run after this one
+        // (MapProcessor's tile layer and county overlays) find the map ready.
+        // MapProcessor adds the MapTiler basemap.
+        mapRef.current = L.map('vos-map', {
+            center: [39.8283, -98.5795],
+            zoom: 4,
+            // Minimal chrome — navigation is driven by search/legend/gestures.
+            zoomControl: false,
+            // Keep panning within the continental US.
+            maxBounds: [
+                [49.3849, -66.8859],
+                [24.3963, -124.8489],
+            ],
+        });
 
     }, []);
 

@@ -7,11 +7,10 @@ class VOS_Settings {
         register_setting( 'vos_tm_settings', '_vos_tm_active_regions' );
         register_setting( 'vos_tm_settings', '_vos_tm_active_subregions' );
         register_setting( 'vos_tm_settings', '_vos_tm_playground_subregions' );
-        // Single shared Google Maps Platform key — used both for the
-        // client-side Maps JS API and server-side Geocoding (see
-        // geocode_api_key()). Restrict it in the Google Cloud console
-        // (HTTP referrer + enabled-API allowlist), since the client path
-        // exposes it in the page source.
+        // Google Maps Platform key for server-side Geocoding (rest_geocode()).
+        // The geocoder is dormant: address lookup is shelved, and the key has
+        // no admin field. The basemap no longer uses Google (see
+        // maptiler_key()).
         register_setting( 'vos_tm_settings', '_vos_tm_google_maps_key', array(
             'type'              => 'string',
             'sanitize_callback' => 'sanitize_text_field',
@@ -19,9 +18,10 @@ class VOS_Settings {
             'show_in_rest'      => false,
         ) );
 
-        // Legacy MapTiler key. Retained as a read fallback during the 3.0
-        // migration so an already-stored value keeps the map working until
-        // a Google key is entered; the admin field is replaced in 3.0.
+        // MapTiler key for the Leaflet basemap tiles. Localized as
+        // vosTm.maptilerKey, so it's visible in the page source: restrict
+        // it to your domain under Allowed HTTP origins in the MapTiler
+        // dashboard.
         register_setting( 'vos_tm_settings', '_vos_tm_maptiler_key', array(
             'type'              => 'string',
             'sanitize_callback' => 'sanitize_text_field',
@@ -32,66 +32,34 @@ class VOS_Settings {
     }
 
     /**
-     * Resolves the Google Maps Platform API key (basemap + geocoding).
-     *
-     * Reads the 3.0 option first and falls back to the legacy MapTiler
-     * option slot so a key pasted into the pre-rename settings field still
-     * reaches the client and the geocoder during the migration.
+     * Returns the MapTiler key used for the basemap tiles.
+     */
+    public static function maptiler_key() {
+
+        return (string) get_option( '_vos_tm_maptiler_key', '' );
+
+    }
+
+    /**
+     * Returns the Google Maps Platform key used by the dormant server-side
+     * geocoder. Not sent to the browser.
      */
     public static function google_maps_key() {
 
-        $key = (string) get_option( '_vos_tm_google_maps_key', '' );
-
-        if ( $key === '' ) {
-            $key = (string) get_option( '_vos_tm_maptiler_key', '' );
-        }
-
-        return $key;
+        return (string) get_option( '_vos_tm_google_maps_key', '' );
 
     }
 
     /**
-     * Enqueues the Google Maps JS API via the official inline bootstrap
-     * loader, which exposes google.maps.importLibrary() for the front-end
-     * bundle to await. No-op when no key is set. Self-guards against double
-     * enqueue so it can be called from both the public and admin enqueues.
-     */
-    public static function enqueue_google_maps_loader() {
-
-        if ( wp_script_is( 'vos-google-maps-loader', 'enqueued' ) ) {
-            return;
-        }
-
-        $key = self::google_maps_key();
-
-        if ( $key === '' ) {
-            return;
-        }
-
-        wp_register_script( 'vos-google-maps-loader', '', array(), null, true );
-        wp_enqueue_script( 'vos-google-maps-loader' );
-
-        // Google's documented inline loader. NOWDOC keeps PHP from touching
-        // the JS template literals / $ tokens; the key is injected as JSON.
-        $loader = <<<'JS'
-(g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?console.warn(p+" only loads once. Ignoring:",g):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})({key:__VOS_GMAPS_KEY__,v:"weekly"});
-JS;
-
-        wp_add_inline_script( 'vos-google-maps-loader', str_replace( '__VOS_GMAPS_KEY__', wp_json_encode( $key ), $loader ) );
-
-    }
-
-    /**
-     * Handles the vos_tm_save_google_maps_key admin-post action.
+     * Handles the vos_tm_save_maptiler_key admin-post action.
      *
-     * Stores the Google Maps Platform API key in wp_options. The key is
-     * localized to the client for the basemap (Maps JS API), so it is
-     * exposed in the page source — restrict it to your domain via an HTTP
-     * referrer allowlist in the Google Cloud console.
+     * Stores the MapTiler key in wp_options. The key is localized to the
+     * client for the tile URLs, so restrict it to your domain in the
+     * MapTiler dashboard.
      */
-    public function save_google_maps_key() {
+    public function save_maptiler_key() {
 
-        if ( ! isset( $_POST['vos_tm_google_maps_nonce'] ) || ! wp_verify_nonce( $_POST['vos_tm_google_maps_nonce'], 'vos_tm_save_google_maps_key' ) ) {
+        if ( ! isset( $_POST['vos_tm_maptiler_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['vos_tm_maptiler_nonce'] ) ), 'vos_tm_save_maptiler_key' ) ) {
             wp_die( 'Security check failed.' );
         }
 
@@ -99,11 +67,11 @@ JS;
             wp_die( 'Insufficient permissions.' );
         }
 
-        $key = isset( $_POST['_vos_tm_google_maps_key'] ) ? sanitize_text_field( wp_unslash( $_POST['_vos_tm_google_maps_key'] ) ) : '';
+        $key = isset( $_POST['_vos_tm_maptiler_key'] ) ? sanitize_text_field( wp_unslash( $_POST['_vos_tm_maptiler_key'] ) ) : '';
 
-        update_option( '_vos_tm_google_maps_key', $key );
+        update_option( '_vos_tm_maptiler_key', $key );
 
-        wp_safe_redirect( admin_url( 'admin.php?page=vos-territory&google_maps_saved=1' ) );
+        wp_safe_redirect( admin_url( 'admin.php?page=vos-territory&maptiler_saved=1' ) );
         exit;
 
     }
@@ -176,36 +144,36 @@ JS;
 
         $import_success  = isset( $_GET['imported'] ) && $_GET['imported'] === '1';
         $import_error    = isset( $_GET['import_error'] ) ? urldecode( sanitize_text_field( $_GET['import_error'] ) ) : null;
-        $google_maps_saved = isset( $_GET['google_maps_saved'] ) && $_GET['google_maps_saved'] === '1';
-        $google_maps_key   = self::google_maps_key();
+        $maptiler_saved  = isset( $_GET['maptiler_saved'] ) && $_GET['maptiler_saved'] === '1';
+        $maptiler_key    = self::maptiler_key();
 
         ?>
         <div id="vos-territory"></div>
 
         <div style="max-width:600px;margin:2rem 0;padding:1.5rem;background:#fff;border:1px solid #c3c4c7;border-radius:4px;">
-            <h2 style="margin-top:0;">Google Maps API Key</h2>
+            <h2 style="margin-top:0;">MapTiler API Key</h2>
 
-            <?php if ( $google_maps_saved ) : ?>
-                <div class="notice notice-success inline"><p>Google Maps key saved.</p></div>
+            <?php if ( $maptiler_saved ) : ?>
+                <div class="notice notice-success inline"><p>MapTiler key saved.</p></div>
             <?php endif; ?>
 
             <p style="color:#646970;margin-bottom:1rem;">
-                Used for the basemap (Maps JavaScript API). Create one in the
-                <a href="https://console.cloud.google.com/google/maps-apis/credentials" target="_blank" rel="noopener">Google Cloud console</a>
-                with the Maps JavaScript API enabled. The key is exposed in the page
-                source, so restrict it to your domain with an HTTP-referrer allowlist.
+                Used for the basemap tiles. Create one in your
+                <a href="https://cloud.maptiler.com/account/keys/" target="_blank" rel="noopener">MapTiler account</a>.
+                The key is exposed in the page source, so restrict it to your
+                domain under Allowed HTTP origins.
             </p>
 
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-                <?php wp_nonce_field( 'vos_tm_save_google_maps_key', 'vos_tm_google_maps_nonce' ); ?>
-                <input type="hidden" name="action" value="vos_tm_save_google_maps_key">
+                <?php wp_nonce_field( 'vos_tm_save_maptiler_key', 'vos_tm_maptiler_nonce' ); ?>
+                <input type="hidden" name="action" value="vos_tm_save_maptiler_key">
                 <p>
-                    <label for="_vos_tm_google_maps_key"><strong>API key</strong></label><br>
+                    <label for="_vos_tm_maptiler_key"><strong>API key</strong></label><br>
                     <input
                         type="text"
-                        id="_vos_tm_google_maps_key"
-                        name="_vos_tm_google_maps_key"
-                        value="<?php echo esc_attr( $google_maps_key ); ?>"
+                        id="_vos_tm_maptiler_key"
+                        name="_vos_tm_maptiler_key"
+                        value="<?php echo esc_attr( $maptiler_key ); ?>"
                         style="width:100%;max-width:420px;margin-top:0.4rem;font-family:monospace;"
                         autocomplete="off"
                         spellcheck="false"

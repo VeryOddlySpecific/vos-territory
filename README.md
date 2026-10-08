@@ -57,10 +57,14 @@ role; that legacy grant is now scrubbed on upgrade.)
 
 ```bash
 npm install
-npm run start      # watch + rebuild on change
-npm run build      # production build → build/index.js
-npm run plugin-zip # package the plugin as a zip
+npm run start        # watch + rebuild on change, into build/
+npm run build        # production build → build/ (in place; refresh WordPress)
+npm run build:deploy # production build + PHP copied into deploy/ for shipping
+npm run plugin-zip   # package the plugin as a zip
 ```
+
+To build straight into another WordPress install, set `VOS_TM_DEPLOY_DIR` to
+that install's plugin folder. Don't point it at this repo.
 
 Front-end source lives under `src/`, gets bundled by `wp-scripts` (see
 `webpack.config.js`), and is loaded by the plugin via
