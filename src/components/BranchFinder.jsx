@@ -2,6 +2,8 @@ import { useState, useMemo } from '@wordpress/element';
 import booleanPointInPolygon from '@turf/boolean-point-in-polygon';
 import { point } from '@turf/helpers';
 
+import { safeUrl } from '../utils/sanitize';
+
 /**
  * Branch Finder
  *
@@ -258,9 +260,9 @@ const BranchFinder = () => {
                         </div>
                     ) }
 
-                    { result.branch.url && (
+                    { safeUrl( result.branch.url ) && (
                         <p style={ { marginTop: '0.75rem', marginBottom: 0 } }>
-                            <a href={ result.branch.url }>Visit branch site →</a>
+                            <a href={ safeUrl( result.branch.url ) }>Visit branch site →</a>
                         </p>
                     ) }
                 </div>

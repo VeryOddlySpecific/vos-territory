@@ -16,6 +16,7 @@ class VOS_Territory {
 
     private function load_deps() {
 
+        require_once VOS_TM_PATH . 'includes/admin/class-vos-meta-fields.php';
         require_once VOS_TM_PATH . 'includes/admin/class-vos-branch.php';
         require_once VOS_TM_PATH . 'includes/admin/class-vos-playground.php';
         require_once VOS_TM_PATH . 'includes/admin/class-vos-admin.php';
@@ -38,6 +39,8 @@ class VOS_Territory {
         $this->playground->run();
         $this->admin->run();
         $this->public->run();
+
+        add_action( 'admin_init', array( 'VOS_Meta_Fields', 'maybe_repair_stored_values' ) );
 
     }
 }

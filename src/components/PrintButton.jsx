@@ -3,6 +3,7 @@ import { useContext } from '@wordpress/element';
 import * as turf from '@turf/turf';
 
 import { MapContext } from './MapContext';
+import { safeColor } from '../utils/sanitize';
 
 /**
  * Print Map
@@ -171,7 +172,9 @@ const PrintButton = () => {
 
         // Branch-colored county fills.
         countyFeatures.forEach( f => {
-            const color = branches[ f.properties.branch ]?.color || '#888888';
+            // This markup is written into a same-origin popup, so every
+            // interpolated value is validated and escaped.
+            const color = xmlEscape( safeColor( branches[ f.properties.branch ]?.color ) );
             parts.push(
                 `<path d="${ featureToPath( f ) }" fill="${ color }" fill-opacity="0.55" stroke="${ color }" stroke-width="0.4"/>`
             );
@@ -316,10 +319,11 @@ const PrintButton = () => {
             const row = Math.floor( i / LEGEND_COLS );
             const x   = PAD_X + col * LEGEND_COL_W;
             const y   = LEGEND_TOP + 12 + row * ROW_H;
+            const color = xmlEscape( safeColor( b.color ) );
 
             legendParts.push(
                 `<rect x="${ x }" y="${ y - 9 }" width="12" height="12" ` +
-                `fill="${ b.color }" fill-opacity="0.55" stroke="${ b.color }" stroke-width="0.5"/>`
+                `fill="${ color }" fill-opacity="0.55" stroke="${ color }" stroke-width="0.5"/>`
             );
             legendParts.push(
                 `<text x="${ x + 18 }" y="${ y }" font-size="9" font-family="sans-serif" ` +

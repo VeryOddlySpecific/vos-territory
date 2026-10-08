@@ -9,6 +9,8 @@
  *   _vos_branch_coordinates – JSON-encoded [lng, lat] array
  *   _vos_branch_url         – branch website URL
  *
+ * Validation for these fields lives in VOS_Meta_Fields.
+ *
  * Style objects (style / activeStyle) are computed client-side from the color.
  * The post ID is used as the branch key throughout the map app.
  */
@@ -56,26 +58,9 @@ class VOS_Branch {
 
     public function register_meta() {
 
-        $fields = array(
-            '_vos_branch_number'      => 'integer',
-            '_vos_branch_color'       => 'string',
-            '_vos_branch_url'         => 'string',
-            '_vos_branch_coordinates' => 'string',
-        );
-
-        foreach ( $fields as $key => $type ) {
-            register_post_meta( 'vos_branch', $key, array(
-                'type'          => $type,
-                'single'        => true,
-                'show_in_rest'  => true,
-                // Required so the block editor's data store can write meta via the REST API.
-                // edit_vos_branches is the CPT's primitive "edit" cap — granted
-                // to administrators and the Map Manager role.
-                'auth_callback' => function() {
-                    return current_user_can( 'edit_vos_branches' );
-                },
-            ) );
-        }
+        // edit_vos_branches is the CPT's primitive "edit" cap — granted
+        // to administrators and the Map Manager role.
+        VOS_Meta_Fields::register( 'vos_branch', '_vos_branch_', 'edit_vos_branches' );
 
     }
 
@@ -117,14 +102,17 @@ class VOS_Branch {
         $branches = array();
 
         foreach ( $posts as $post ) {
-            $coordinates = get_post_meta( $post->ID, '_vos_branch_coordinates', true );
+            // Re-sanitized on read as well as on write, so a value that got
+            // into the database some other way (direct SQL, a migration)
+            // still can't reach the Print window or the Branch Finder.
+            $coordinates = VOS_Meta_Fields::sanitize_coordinates( get_post_meta( $post->ID, '_vos_branch_coordinates', true ) );
 
             $branches[ (string) $post->ID ] = array(
                 'id'          => $post->ID,
                 'label'       => $post->post_title,
-                'color'       => get_post_meta( $post->ID, '_vos_branch_color', true ),
+                'color'       => VOS_Meta_Fields::sanitize_color( get_post_meta( $post->ID, '_vos_branch_color', true ) ),
                 'coordinates' => $coordinates ? json_decode( $coordinates ) : null,
-                'url'         => get_post_meta( $post->ID, '_vos_branch_url', true ),
+                'url'         => VOS_Meta_Fields::sanitize_url( get_post_meta( $post->ID, '_vos_branch_url', true ) ),
             );
         }
 

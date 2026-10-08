@@ -15,6 +15,8 @@
  *   _vos_playground_coordinates – JSON-encoded [lng, lat] array
  *   _vos_playground_url         – website URL
  *
+ * Validation for these fields lives in VOS_Meta_Fields, shared with VOS_Branch.
+ *
  * This intentionally mirrors VOS_Branch; the shared color/quick-edit machinery
  * is duplicated rather than abstracted so the working branch code stays
  * untouched. A future pass can extract a common base (see README).
@@ -61,24 +63,7 @@ class VOS_Playground {
 
     public function register_meta() {
 
-        $fields = array(
-            '_vos_playground_number'      => 'integer',
-            '_vos_playground_color'       => 'string',
-            '_vos_playground_url'         => 'string',
-            '_vos_playground_coordinates' => 'string',
-        );
-
-        foreach ( $fields as $key => $type ) {
-            register_post_meta( 'vos_playground', $key, array(
-                'type'          => $type,
-                'single'        => true,
-                'show_in_rest'  => true,
-                // Required so the block editor's data store can write meta via the REST API.
-                'auth_callback' => function() {
-                    return current_user_can( 'edit_vos_playgrounds' );
-                },
-            ) );
-        }
+        VOS_Meta_Fields::register( 'vos_playground', '_vos_playground_', 'edit_vos_playgrounds' );
 
     }
 
@@ -120,14 +105,15 @@ class VOS_Playground {
         $playgrounds = array();
 
         foreach ( $posts as $post ) {
-            $coordinates = get_post_meta( $post->ID, '_vos_playground_coordinates', true );
+            // Re-sanitized on read as well as on write; see get_branches_for_js().
+            $coordinates = VOS_Meta_Fields::sanitize_coordinates( get_post_meta( $post->ID, '_vos_playground_coordinates', true ) );
 
             $playgrounds[ (string) $post->ID ] = array(
                 'id'          => $post->ID,
                 'label'       => $post->post_title,
-                'color'       => get_post_meta( $post->ID, '_vos_playground_color', true ),
+                'color'       => VOS_Meta_Fields::sanitize_color( get_post_meta( $post->ID, '_vos_playground_color', true ) ),
                 'coordinates' => $coordinates ? json_decode( $coordinates ) : null,
-                'url'         => get_post_meta( $post->ID, '_vos_playground_url', true ),
+                'url'         => VOS_Meta_Fields::sanitize_url( get_post_meta( $post->ID, '_vos_playground_url', true ) ),
             );
         }
 
